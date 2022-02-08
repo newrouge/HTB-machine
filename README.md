@@ -51,9 +51,11 @@ aws_lambda = session.client('lambda')
 ```
 + Accessing cloud.epsilon.htb will give you 403 in browser guess it's not accessible this way.
 + Let's add these keys to our **[aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)**  and we can access aws lambda from our terminal.
+
 *What is AWS LAMBDA?
 AWS lambda provides service to  run your code on particular events or triggers. Mainly used in backend application to manage websites
 Official Link: [CLick](https://aws.amazon.com/lambda/features/)*
+
 + run **aws configure** and add keys and region or manually paste keys in your **~/.aws/credentials** & region in **~/.aws/config** file.
 + You can learn more about aws lambda by **aws lambda help** it will give you all possible commands to run. One of our use is **list-functions & get-function**
 + Run `aws lambda list-functions` and you will get following error:
@@ -135,14 +137,14 @@ by setting `costume=glasses</p><h1>INJECTION</h1>`.
 + As it is a python application and input is reflected SSTI(Server Side Template INjection) only thing that could be tested now, and ofcourse machine tag has it :)
 + As expected `{{7*7}}` truns into **Your order of "49" has been placed successfully.**
  ### Creating exploit
- 1. In python ** [.__class__](https://docs.python.org/release/2.6.4/library/stdtypes.html#instance.__class__) ** will tell to which class your current instance belongs to.
+ 1. In python **[`.__class__`](https://docs.python.org/release/2.6.4/library/stdtypes.html#instance.__class__)** will tell to which class your current instance belongs to.
  ![Screenshot from 2022-02-08 23-42-02](https://user-images.githubusercontent.com/79413473/153049767-d552a80b-f752-43a2-ae73-289a6dcfd0c0.png)
 `costume={{ ''.__class__ }}` tells it's an string class.
-2. **[__mro__](https://docs.python.org/release/2.6.4/library/stdtypes.html#class.__mro__)** is an attribute of a class which tells base/parent class of this object.
+2. **[`__mro__`](https://docs.python.org/release/2.6.4/library/stdtypes.html#class.__mro__)** is an attribute of a class which tells base/parent class of this object.
 `costume={{ ''.__class__.__mro__ }}` will show 
 ![Screenshot from 2022-02-08 23-47-15](https://user-images.githubusercontent.com/79413473/153050613-b77558f8-1edd-42e0-bd5b-09d9efb3062a.png)
 3. Now as we want to climb up to root object we will access with `[1]`
-4. Now we want to see how many subclasses are accessible through this root onject [__subclasses__() ](https://docs.python.org/release/2.6.4/library/stdtypes.html#class.__subclasses__). 
+4. Now we want to see how many subclasses are accessible through this root onject [`__subclasses__()`](https://docs.python.org/release/2.6.4/library/stdtypes.html#class.__subclasses__). 
 `costume={{ ''.__class__.__mro__[1].__subclasses__() }}` will return list of subclasses accessbile.
 ![Screenshot from 2022-02-08 23-51-33](https://user-images.githubusercontent.com/79413473/153051393-a27459b2-a1cd-43e4-93bd-ee04e58f575f.png)
 5. From this haystack of list we need to find the needle i.e popen module which will execute the command. here that is at index of 389, used some find and replace all trick in sublime.
