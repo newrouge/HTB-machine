@@ -57,7 +57,7 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 ```  
 + From the ssl cert name add **bolt.hbt** & **passbolt.bolt.htb** to /etc/hosts file.
 
-![Screenshot from 2022-02-19 19-45-54](https://user-images.githubusercontent.com/79413473/154805088-9a371c35-0873-4056-a3ed-df6672ba2565.png =100*100)
+![Screenshot from 2022-02-19 19-45-54](https://user-images.githubusercontent.com/79413473/154805088-9a371c35-0873-4056-a3ed-df6672ba2565.png|width=100px)
 
 + passbolt redirect to login
 ![Screenshot from 2022-02-19 20-00-01](https://user-images.githubusercontent.com/79413473/154805120-a4a24946-7d2e-47ad-a3e2-1c57ca7b14fc.png =100*100)
