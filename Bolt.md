@@ -70,3 +70,72 @@ ffuf -u http://bolt.htb/ -w ~/wordlist/SecLists/Discovery/DNS/subdomains-top1mil
 
 ![Screenshot from 2022-02-19 20-11-52](https://user-images.githubusercontent.com/79413473/154805666-1ebad463-a9f0-4052-80ef-eb28b596ae98.png)
 
+
+
+
+## Foothold:
+
+### Admin Panel Access on bolt.htb
++ From *bolt.htb/download* page download the tar file, and extract it using `tar -xvf image.tar`.
++ You will get a lot of files from here you will have to manually extract *layer.tar* file in each directory and look for useful infomration. Toughest thing about this box was this.
++ Now in direcoty *a4ea7da8de7bfbf327b56b0cb794aed9a8487d31e588b75029f6b527af2976f2* you will get *db.sqllite3* file and let's connect to this database.
++ `sqlite3 db.sqlite3`, and we  can get admin's hash from this.
+![Screenshot from 2022-02-19 21-07-25](https://user-images.githubusercontent.com/79413473/154807729-a055c952-491b-49f8-bf8a-78a70c16b89f.png)
+
++ Now we can crack this hash easily using hashcat. I recommend watching [this](https://www.youtube.com/watch?v=5pd9n4BTYp0) video of superhero1 if you don't have strong pc to crack hashes. he shows how you can use google colab to crack hashes on cloud and i loved this personally, it's superfast. 
+```
+hashcat -m 500 hash wordlist/rockyou.txt
+
+Output:
+$1$sm1RceCh$rSd3PygnS/6jlFDfF2J5q.:deadbolt
+```
++ Login into admin dashboard with **admin:deadbolt**
+
+![Screenshot from 2022-02-19 21-13-05](https://user-images.githubusercontent.com/79413473/154807928-d30f7c60-6249-433c-a24c-90698282a706.png)
+
+### Creating account on demo.bolt.htb
++ On **demo.bolt.htb** go to register page. You will see it needs and INVITE_KEY to create an account. Poking aroung in tar file we downloaded you will get invote key also in *41093412e0da959c80875bb0db640c1302d5bcdffec759a3a5670950272789ad/layer/app/base/routes.py*
+
+```
+def register():
+    login_form = LoginForm(request.form)
+    create_account_form = CreateAccountForm(request.form)
+    if 'register' in request.form:
+
+        username  = request.form['username']
+        email     = request.form['email'   ]
+        code	  = request.form['invite_code']
+        if code != 'XNSS-HSJW-3NGU-8XTJ':
+            return render_template('code-500.html')
+        data = User.query.filter_by(email=email).first()
+        if data is None and code == 'XNSS-HSJW-3NGU-8XTJ':
+            # Check usename exists
+            user = User.query.filter_by(username=username).first()
+            if user:
+                return render_template( 'accounts/register.html', 
+                                    msg='Username already registered',
+                                    success=False,
+                                    form=create_account_form)
+```
+
+
++ Now using this key i created an account with creds **newrouge:newrouge** on demo.bolt.htb. Now this demo website gives us similar web page after login as we got from **bolt.htb** dashboard, just with lot more features.
+
+![Screenshot from 2022-02-19 21-30-07](https://user-images.githubusercontent.com/79413473/154808518-5e0a9cfb-dd9d-4617-92f5-d5688215b2ac.png)
+
++ You can also login to your mail account on **mail.bolt.htb** with same creds. Looks like application automatically created this for you.
+
+![Screenshot from 2022-02-19 21-32-59](https://user-images.githubusercontent.com/79413473/154808620-9211a19d-e7c7-41e6-84d9-ae6287928f60.png)
+
++ Now there is feature in demo which was not in admin dashboard on bolt. You can edit your profile.
+
+![2022-02-19_21-35](https://user-images.githubusercontent.com/79413473/154808756-9a23579a-6d94-41e4-bb01-673741d68c75.png)
+
++ let's edit our profile here
+
+![Screenshot from 2022-02-19 21-37-26](https://user-images.githubusercontent.com/79413473/154808791-6301046d-a010-49c2-a046-49e8635adbb2.png)
+
++ You will notice that you got an email regarding profile update in **mail.bolt.htb**.
+
+![Screenshot from 2022-02-19 21-38-36](https://user-images.githubusercontent.com/79413473/154808833-324bce9f-7233-4b92-9aaf-85f0fe9011dd.png)
+
