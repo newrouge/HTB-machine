@@ -311,7 +311,7 @@ PSwYYWlAywj5
 ![Screenshot from 2022-02-20 00-43-14](https://user-images.githubusercontent.com/79413473/154815541-11886e2d-5883-438d-a0af-8427a23d28dd.png)
 
 + Now you can decrypt the message by this command `gpg -d message`. But you will get an error, *no secret key*, you will need to first import the private key into gpg. 
-+ We also need to crack this gpg private key , for that we will need tool *gpg2john*, i struggled with other sources. Also normal john-the-ripper doesn't wotk for me. Only Ubuntu snap's john-the-ripper works on my mcahine. Fortunately it also has package for gpg2john.
++ We also need to crack this gpg private key ,I used ubuntu's john-the-ripper.gpg2john for that.
 
 ![Screenshot from 2022-02-20 00-46-35](https://user-images.githubusercontent.com/79413473/154815662-f8d6b3d3-3a0a-4564-91a7-981ebc723acd.png)
 
@@ -342,5 +342,6 @@ Primary key fingerprint: DF42 6BC7 A4A8 AF58 E50E  DA0E 1C27 41A3 DC3B 4ABD
 ![Screenshot from 2022-02-20 01-56-50](https://user-images.githubusercontent.com/79413473/154817945-49b84f5b-3da1-4a4a-8949-1d8eb91f2d2f.png)
 
 
+Thank you and feedbacks are welcome :)
 
-
+Twitter: Avinashkroy
