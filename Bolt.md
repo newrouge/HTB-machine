@@ -111,7 +111,7 @@ def register():
         if data is None and code == 'XNSS-HSJW-3NGU-8XTJ':
             # Check usename exists
             user = User.query.filter_by(username=username).first()
-            if user:
+            if user:.
                 return render_template( 'accounts/register.html', 
                                     msg='Username already registered',
                                     success=False,
@@ -138,4 +138,18 @@ def register():
 + You will notice that you got an email regarding profile update in **mail.bolt.htb**.
 
 ![Screenshot from 2022-02-19 21-38-36](https://user-images.githubusercontent.com/79413473/154808833-324bce9f-7233-4b92-9aaf-85f0fe9011dd.png)
+
++ Click the link you will be redirected to your dasboard but keep an eye on mail and you will see that you get an new email with name update notifications.
+
+![Screenshot from 2022-02-19 21-40-25](https://user-images.githubusercontent.com/79413473/154808987-ac0316f1-efcb-4072-88f1-e98b178dab3f.png)
+
++ Now as my payload `<h1>mango</h1>` got fired it confirms there is HTML injection and xss on **mail.bolt.htb** from payload injected on **demo.bolt.htb** name field. But this is of not much use. As it's a python application let's go towards SSTI.
+
++ Add `{{7*7}}` to name field and update it. As expected it's reflected as 49.
+
+![Screenshot from 2022-02-19 21-45-53](https://user-images.githubusercontent.com/79413473/154809165-683b3386-4dde-42bd-9f9d-9ba14bc11365.png)
+
+
+
+
 
