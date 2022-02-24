@@ -24,7 +24,7 @@ PORT   STATE SERVICE  REASON  VERSION
 
 Other enumeration like directory scan and vhost fuzzing doesn't reveal much other than there is login panel, where we can sign-in and sign-up.
 
-## Foothold: 
+## Foothold: Sql injection and SSTI
 
 Clickinng on account icon gives a login panel and option to signup.
 
@@ -137,7 +137,7 @@ So coming back to topic. If you will cat **/proc/1/cgroup** and you see some doc
 
 Let's try to escape this docker.
 
-There is a home directory for user**augustus**. But /etc/passwd has no such user and you can't change user as augustus. Looks like it's mounted from the host machine. You can also run **moount** command to see that indeed it's mounted from host machine and read write permission.
+There is a home directory for user**augustus**. But /etc/passwd has no such user and you can't change user as augustus. Looks like it's mounted from the host machine. You can also run **mount** command to see that indeed it's mounted from host machine and read write permission.
 
 ![Screenshot from 2022-02-24 15-51-31](https://user-images.githubusercontent.com/79413473/155505755-5b86d046-1210-4cb0-92e6-84f7f0db501c.png)
 
@@ -174,10 +174,20 @@ Now there are multiple way's to get root from here.
 
 Let's do that 
 
-![Screenshot from 2022-02-24 16-20-34](https://user-images.githubusercontent.com/79413473/155510488-68beb0cd-4d84-4135-8573-ec66f6306d01.png)
-
 ![Screenshot from 2022-02-24 16-20-01](https://user-images.githubusercontent.com/79413473/155510491-beeebcc3-8495-4246-b070-a79d90f4196b.png)
 
+![Screenshot from 2022-02-24 16-20-34](https://user-images.githubusercontent.com/79413473/155510488-68beb0cd-4d84-4135-8573-ec66f6306d01.png)
+
 and we are root on box.
+
+Let's look at ip rules.
+
+![Screenshot from 2022-02-24 16-25-36](https://user-images.githubusercontent.com/79413473/155511258-064ffbea-3fac-44ff-8ea1-9f59a3f32b10.png)
+
+And we can see that ssh is open for 172.19.0.1 host only. 
+
+## Learning:
++ scanning hosts without nmap and nc
++ How docekr utilises cgroup and namespace to utilise kernel resources and isolate different features.
 
 Thank you
