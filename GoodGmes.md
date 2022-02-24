@@ -100,15 +100,84 @@ Now from setting option you can edit your name and other stuff. Let's do that an
 
 ![Screenshot from 2022-02-24 15-06-52](https://user-images.githubusercontent.com/79413473/155498636-2558d534-b511-4983-a2c9-b8d21b6c720e.png)
 
-![Screenshot from 2022-02-24 15-05-49](https://user-images.githubusercontent.com/79413473/155498650-9491aebb-d397-42a7-89eb-32a16ffa7942.png)
+![Screenshot from 2022-02-24 15-09-50](https://user-images.githubusercontent.com/79413473/155498811-6cc208ba-8194-4a5d-b789-c6c17b1c3830.png)
+
+indeed it's reflected as 49. Also it's running jinja template. Now we can get a shell from here using SSTI [payloads](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Server%20Side%20Template%20Injection#jinja2). 
+Now 0xdf have done a fantastic video on how these payloads actually work you can find it [here](https://www.youtube.com/watch?v=7o1J8vHdlYc).
+Also if you want written version of it i have also explained this in this htb machine [blog](https://newrouge.blogspot.com/2022/02/epsilon-hackthebox.html).
+
+I will be using `{{ namespace.__init__.__globals__.os.popen('id').read() }}` this paylaod to get shell. Basically what happens is that you access naespace clas in jinja and in that you access **__init__** function, in python every class has this fucntion defined it's like constructor of that class, after that you access 
+**globals** function accessible by init and then you finally can access python modules like **popen** or **os** to run commands.
+
+![Screenshot from 2022-02-24 15-17-41](https://user-images.githubusercontent.com/79413473/155500805-0de50244-44f6-4fd9-b921-4bbbf427cbfc.png)
+
+Let's get a reverse shell from here. One thing although we are entering dob and phone number to update but in request only name is getting processed. Let's look into that request.
+
+![Screenshot from 2022-02-24 15-27-07](https://user-images.githubusercontent.com/79413473/155501665-f94add01-5087-49f9-963a-8faa9f8fae17.png)
+
+only name field is being sent, so anyway other field are just to annoy us :) Let's modify the request and look if anything changes. 
+
+![Screenshot from 2022-02-24 15-29-29](https://user-images.githubusercontent.com/79413473/155502154-17c8566a-3c7f-455f-98c2-dde41909279e.png)
 
 
+But nothing changes. Let's move on.
 
+## Privilege Escaltion: Docker escape
 
+After getting rev. shell we are already runnning as root.
 
+![Screenshot from 2022-02-24 15-33-27](https://user-images.githubusercontent.com/79413473/155502821-7defbcd9-f4b1-4b1f-bae1-edcb1a8f4722.png)
 
+but ofcourse we are in docker, loking at hostname and dockerfile all over the place. Also one way to confirm if you are running in dockerenv to check
+**/proc/1/cgroup**. cgroup is control groups which in combination with namespaces isolate different processes for container environments. They both are linux kernel feature. Namespace allocate resources(CPU,ram etc.) to different processes to give user a VM like feel, and cgroups control that allocation how much resource shoudl be accessible to which process. More on it [here](https://www.nginx.com/blog/what-are-namespaces-cgroups-how-do-they-work/).
 
+So coming back to topic. If you will cat **/proc/1/cgroup** and you see some docker ids means you are in docker and these are control groups are being used by docker. Else these will be balnk. in our case:
 
+![Screenshot from 2022-02-24 15-46-13](https://user-images.githubusercontent.com/79413473/155504982-163db025-7101-4afc-b1f5-48330e943f4b.png)
 
+Let's try to escape this docker.
 
+There is a home directory for user**augustus**. But /etc/passwd has no such user and you can't change user as augustus. Looks like it's mounted from the host machine. You can also run **moount** command to see that indeed it's mounted from host machine and read write permission.
 
+![Screenshot from 2022-02-24 15-51-31](https://user-images.githubusercontent.com/79413473/155505755-5b86d046-1210-4cb0-92e6-84f7f0db501c.png)
+
+Let's enumerate a little bit, looking for processes running and something vulnerable script etc. nothing, but one thing stand out. Running ifconfig gives docker ip. 
+
+![Screenshot from 2022-02-24 15-52-44](https://user-images.githubusercontent.com/79413473/155505934-1f91ad1f-1b34-4e4d-8d46-5c395cb55da3.png)
+
+Now our instance has ip 172.19.0.2, which can mean that there is a 172.19.0.1 which is the first ip in network assigned to host machine generally. Let's checck that. Or you could have enumerated running a for loop for a range.
+
+![Screenshot from 2022-02-24 15-55-14](https://user-images.githubusercontent.com/79413473/155506391-f53317e0-096d-4ff8-84a0-cc096890fbee.png)
+
+172.19.0.1 is listening unlike others. We need to scan for port it listening for. But this box neither **nc* nor **nmap**. But we can use some bash trick using **/dev/tcp** or **/dev/udp** to check if particular port is open. We will send data using tcp or udp protocol on differetn ports and if data is received means it's open.
+
+```
+for port in $(seq 1 1000); do (echo "blah" > /dev/tcp/172.19.0.1/$port && echo "open - $port") 2>/dev/null; done
+
+```
+
+It will echo blah on evry port from 1 to 1000 using /dev/tcp and if it succeeds it will say it's open.
+
+![Screenshot from 2022-02-24 16-04-08](https://user-images.githubusercontent.com/79413473/155507870-7de5aca7-ba0a-486c-b82b-7eda19d1a822.png)
+
+Port 22 is open and 80 is open. Port 80 is website we saw on goodgames.htb but 22 was not open when we scanned 10.10.11.130. Let's try ssh as augustus user.
+with our cracked password.
+
+![Screenshot from 2022-02-24 16-08-07](https://user-images.githubusercontent.com/79413473/155508529-9e27963a-992f-4375-8abb-eb1b8aad4d40.png)
+
+Now this is same directory as we had on docker machine, just here we are as augustus user and in docker as root. What we create in this directory either way is accessible other way. Outside/inside of docker.
+
+Now there are multiple way's to get root from here. 
+1. copy /bin/bash as augustus on host machine into home directory then in docker change it's user to root with suid binary. Then as augustus o host run it as root.
+2. Or in docker copy /bin/sh which will automatically be owned by root, as you are root in docker, set suid binary. Now on host run is you will be root.
+3. but you can't copy /bin/bash in docker and run it on host, as for bash different shared libraries are used. 
+
+Let's do that 
+
+![Screenshot from 2022-02-24 16-20-34](https://user-images.githubusercontent.com/79413473/155510488-68beb0cd-4d84-4135-8573-ec66f6306d01.png)
+
+![Screenshot from 2022-02-24 16-20-01](https://user-images.githubusercontent.com/79413473/155510491-beeebcc3-8495-4246-b070-a79d90f4196b.png)
+
+and we are root on box.
+
+Thank you
